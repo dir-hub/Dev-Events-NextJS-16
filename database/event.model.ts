@@ -108,15 +108,25 @@ const EventSchema = new Schema<IEvent>(
  * - Validates and normalizes date to ISO format
  * - Ensures time is stored in consistent HH:MM format
  */
-EventSchema.pre('save', function (next) {
+EventSchema.pre('save', async function (next) {
   // Generate slug only if title is new or modified
   if (this.isModified('title')) {
-    this.slug = this.title
+    let baseSlug = this.title
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
       .trim()
       .replace(/\s+/g, '-') // Replace spaces with hyphens
       .replace(/-+/g, '-'); // Replace multiple hyphens with single hyphen
+
+    let slug = baseSlug;
+    let counter = 1;
+    const Event = model<IEvent>('Event') || models.Event;
+
+    while (await Event.exists({ slug, _id: { $ne: this._id } })) {
+      slug = `${baseSlug}-${counter++}`;
+    }
+
+    this.slug = slug;
   }
 
   // Normalize date to ISO format (YYYY-MM-DD)
