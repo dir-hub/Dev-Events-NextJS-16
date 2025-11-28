@@ -71,7 +71,7 @@ const EventDetailsPage = async ({params} :Promise<{slug:string}>) => {
 
                         <EventDetailItem icon="/icons/calendar.svg" alt="calendar" label={date}/>
                         <EventDetailItem icon="/icons/clock.svg" alt="clock" label={time}/>
-                        <EventDetailItem icon="/icons/pin.svg" alt="pin" label={time}/>
+                        <EventDetailItem icon="/icons/pin.svg" alt="pin" label={location}/>
                         <EventDetailItem icon="/icons/mode.svg" alt="mode" label={mode}/>
                         <EventDetailItem icon="/icons/audience.svg" alt="audience" label={audience}/>
 

@@ -23,10 +23,48 @@ export async function POST(req:NextRequest){
            return NextResponse.json({message:'Image is required'}, {status:400})
        }
 
-       let tags = JSON.parse(formData.get('tags') as string);
-        let agenda = JSON.parse(formData.get('agenda') as string);
+        // 验证并解析 tags
+        const tagsString = formData.get('tags') as string;
+        let tags = [];
+        if (tagsString) {
+            try {
+                tags = JSON.parse(tagsString);
+                if (!Array.isArray(tags)) {
+                    return new Response(
+                        JSON.stringify({ error: "Tags must be an array" }),
+                        { status: 400, headers: { 'Content-Type': 'application/json' } }
+                    );
+                }
+            } catch (e) {
+                return new Response(
+                    JSON.stringify({ error: "Invalid JSON for tags" }),
+                    { status: 400, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
+        }
 
-       const arrayBuffer = await file.arrayBuffer();
+// 验证并解析 agenda
+        const agendaString = formData.get('agenda') as string;
+        let agenda = {};
+        if (agendaString) {
+            try {
+                agenda = JSON.parse(agendaString);
+                if (typeof agenda !== 'object' || Array.isArray(agenda)) {
+                    return new Response(
+                        JSON.stringify({ error: "Agenda must be an object" }),
+                        { status: 400, headers: { 'Content-Type': 'application/json' } }
+                    );
+                }
+            } catch (e) {
+                return new Response(
+                    JSON.stringify({ error: "Invalid JSON for agenda" }),
+                    { status: 400, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
+        }
+
+
+        const arrayBuffer = await file.arrayBuffer();
        const buffer = Buffer.from(arrayBuffer);
        
        const uploadResult = await new Promise((resolve, reject) => {
