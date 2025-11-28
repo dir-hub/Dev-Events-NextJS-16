@@ -108,7 +108,7 @@ const EventSchema = new Schema<IEvent>(
  * - Validates and normalizes date to ISO format
  * - Ensures time is stored in consistent HH:MM format
  */
-EventSchema.pre('save', async function (next) {
+EventSchema.pre<IEvent>('save', async function () {
   // Generate slug only if title is new or modified
   if (this.isModified('title')) {
     let baseSlug = this.title
@@ -120,9 +120,11 @@ EventSchema.pre('save', async function (next) {
 
     let slug = baseSlug;
     let counter = 1;
-    const Event = model<IEvent>('Event') || models.Event;
 
-    while (await Event.exists({ slug, _id: { $ne: this._id } })) {
+    // Use the already-compiled Event model for slug uniqueness checks
+    const EventModel = (this.constructor as typeof model<IEvent>);
+
+    while (await EventModel.exists({ slug, _id: { $ne: this._id } })) {
       slug = `${baseSlug}-${counter++}`;
     }
 
@@ -133,7 +135,7 @@ EventSchema.pre('save', async function (next) {
   if (this.isModified('date')) {
     const dateObj = new Date(this.date);
     if (isNaN(dateObj.getTime())) {
-      return next(new Error('Invalid date format. Use YYYY-MM-DD or valid date string'));
+      throw new Error('Invalid date format. Use YYYY-MM-DD or valid date string');
     }
     this.date = dateObj.toISOString().split('T')[0];
   }
@@ -142,14 +144,12 @@ EventSchema.pre('save', async function (next) {
   if (this.isModified('time')) {
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/;
     if (!timeRegex.test(this.time)) {
-      return next(new Error('Invalid time format. Use HH:MM (24-hour format)'));
+      throw new Error('Invalid time format. Use HH:MM (24-hour format)');
     }
     // Ensure leading zero for hours if needed
     const [hours, minutes] = this.time.split(':');
     this.time = `${hours.padStart(2, '0')}:${minutes}`;
   }
-
-  next();
 });
 
 // Prevent model recompilation in development (Next.js hot reload)

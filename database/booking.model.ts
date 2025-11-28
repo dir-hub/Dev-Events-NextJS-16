@@ -40,24 +40,22 @@ const BookingSchema = new Schema<IBooking>(
  * Pre-save hook to validate that the referenced event exists
  * Prevents orphaned bookings by verifying eventId before saving
  */
-BookingSchema.pre('save', async function (next) {
+BookingSchema.pre('save', async function (this: any) {
   // Only validate eventId if it's new or modified
   if (this.isModified('eventId')) {
     try {
       // Dynamically import Event model to avoid circular dependency
       const Event = models.Event || (await import('./event.model')).default;
-      
+
       const eventExists = await Event.exists({ _id: this.eventId });
-      
+
       if (!eventExists) {
-        return next(new Error(`Event with ID ${this.eventId} does not exist`));
+        throw new Error(`Event with ID ${this.eventId} does not exist`);
       }
     } catch (error) {
-      return next(error instanceof Error ? error : new Error('Failed to validate event'));
+      throw error instanceof Error ? error : new Error('Failed to validate event');
     }
   }
-
-  next();
 });
 
 // Prevent model recompilation in development (Next.js hot reload)
