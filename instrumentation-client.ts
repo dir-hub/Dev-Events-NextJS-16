@@ -13,6 +13,7 @@ if (typeof window !== 'undefined') {
         try {
             posthog.init(key, {
                 api_host: host,
+                capture_exceptions: true,
                 // enable autocapture (default) and any other options here
             });
 

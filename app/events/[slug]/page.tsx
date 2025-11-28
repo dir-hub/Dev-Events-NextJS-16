@@ -4,6 +4,7 @@ import BookEvent from "@/components/BookEvent";
 import {getSimilarEventsBySlug} from "@/lib/actions/event.actions";
 import {IEvent} from "@/database";
 import EventCard from "@/components/EventCard";
+import {cacheLife} from "next/cache";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
@@ -29,22 +30,41 @@ const EventAgenda = ({agendaItems} : {agendaItems:string[]}) => {
     )
 }
 
-const EventTags = ({tags} : {tags:string[]}) => {
-    return(
-        <div className="flex flex-row gap-1.5 flex-wrap"><h2>Tags</h2>
-                {tags.map((tag) => (
-                    <div className="pill" key={tag}>{tag}</div>
-                ))}
-        </div>
-    )
-}
-// @ts-ignore
-const EventDetailsPage = async ({params} :Promise<{slug:string}>) => {
-    const  { slug } = await params;
-    const request = await fetch(`${BASE_URL}/api/events/${slug}`)
-    const {event: {description, image, overview, date, time, location, mode, agenda, audience, tags, organizer}} = await request.json();
+const EventTags = ({ tags }: { tags: string[] }) => (
+    <div className="flex flex-row gap-1.5 flex-wrap">
+            {tags.map((tag) => (
+                <div className="pill" key={tag}>{tag}</div>
+            ))}
+    </div>
+)
+const EventDetailsPage = async ({ params }: { params: Promise<{ slug: string }>}) => {
+    'use cache'
+    cacheLife('hours')
+    const { slug } = await params;
 
-    if(!description) return notFound();
+    let event;
+    try {
+        const request = await fetch(`${BASE_URL}/api/events/${slug}`, {
+            next: { revalidate: 60 }
+        });
+
+        if (!request.ok) {
+            if (request.status === 404) {
+                return notFound();
+            }
+            throw new Error(`Failed to fetch event: ${request.statusText}`);
+        }
+
+        const data = await request.json();
+        event = data.event;
+    } catch (error) {
+        console.error('Error fetching event:', error);
+        throw error;
+    }
+
+    if (!event) return notFound();
+
+    const { description, image, overview, date, time, location, mode, agenda, audience, tags, organizer } = event;
 
     const bookings = 10;
 
@@ -98,7 +118,7 @@ const EventDetailsPage = async ({params} :Promise<{slug:string}>) => {
                                 <p className="text-sm">Be the first to book your spot!</p>
                             )}
 
-                        <BookEvent />
+                        <BookEvent eventId={event._id} slug={event.slug}/>
                     </div>
                 </aside>
             </div>
